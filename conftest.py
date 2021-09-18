@@ -2,8 +2,8 @@ import pytest
 from Bio import AlignIO
 
 
-import ancestral_cost.ancestral_cost as ac
-file_folder = "./files/"
+import ancestralcost.__init__ as ac
+file_folder = "./tests/files/"
 
 
 @pytest.fixture()

@@ -1,5 +1,23 @@
 # Ancestral Cost
 
+[![PyPI Version][pypi-image]][pypi-url]
+[![Build Status][build-image]][build-url]
+[![Code Coverage][coverage-image]][coverage-url]
+[![Code Quality][quality-image]][quality-url]
+
+...
+
+<!-- Badges -->
+
+[pypi-image]: https://img.shields.io/pypi/v/ancestralcost
+[pypi-url]: https://pypi.org/project/ancestralcost/
+[build-image]: https://github.com/gabefoley/ancestralcost/actions/workflows/build.yml/badge.svg
+[build-url]: https://github.com/gabefoley/ancestralcost/actions/workflows/build.yml
+[coverage-image]: https://codecov.io/gh/gabefoley/ancestralcost/branch/main/graph/badge.svg
+[coverage-url]: https://codecov.io/gh/gabefoley/ancestralcost
+[quality-image]: https://api.codeclimate.com/v1/badges/3130fa0ba3b7993fbf0a/maintainability
+[quality-url]: https://codeclimate.com/github/gabefoley/ancestralcost
+
 Ancestral Cost is a tool for validating multiple sequence alignments prior to performing ancestral sequence reconstruction.
 
 It checks for each position in a given ancestor that the presence of ancestral content implied to be there by a given alignment and tree is not substantially less parsimonious then the alternative of not having ancestral content there.

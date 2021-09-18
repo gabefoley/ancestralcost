@@ -1,8 +1,5 @@
-from Bio import AlignIO
 import itertools
-from collections import defaultdict
-import graph
-import re
+import ancestralcost.graph as graph
 
 
 def paths(graph, v):
@@ -17,8 +14,9 @@ def paths(graph, v):
     [[3, 1, 2, 4]]
 
     """
-    path = [v]                  # path traversed so far
-    seen = {v}                  # set of vertices in path
+    path = [v]  # path traversed so far
+    seen = {v}  # set of vertices in path
+
     def search():
         dead_end = True
         for neighbour in graph[path[-1]]:
@@ -31,6 +29,7 @@ def paths(graph, v):
                 seen.remove(neighbour)
         if dead_end:
             yield list(path)
+
     yield from search()
 
 
@@ -47,10 +46,11 @@ def get_unique_ancestors_from_aln(aln):
 
     return unique_seqs
 
+
 def translate(mode, index, translation):
 
-    if type(index) == tuple:
-        return ("".join([translation[int(x)] for x in index]))
+    if isinstance(index, tuple):
+        return "".join([translation[int(x)] for x in index])
     elif type(index) == list:
         translated = []
 
@@ -59,17 +59,19 @@ def translate(mode, index, translation):
         if type(index[0]) == list:
             translation_string = ""
             for i in index:
-                translation_string += symbol + "".join([translation[int(x)] for x in i]) + symbol + " "
+                translation_string += (
+                    symbol + "".join([translation[int(x)] for x in i]) + symbol + " "
+                )
                 # translated.append(translation_string)
 
         else:
-            translation_string = symbol + "".join([translation[int(x)] for x in index]) + symbol
+            translation_string = (
+                symbol + "".join([translation[int(x)] for x in index]) + symbol
+            )
 
         translated.append(translation_string.strip())
 
         return translated[0]
-
-
 
         # indel_type = "+" if "+" in index[0] else "-"
         #

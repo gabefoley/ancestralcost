@@ -1,9 +1,10 @@
 from collections import defaultdict
 import pandas as pd
 from copy import deepcopy
-import alignment_permutations
+import ancestralcost.alignment_permutations as alignment_permutations
 from ete3 import PhyloTree, TreeStyle, TextFace, add_face_to_node, SeqMotifFace
 from Bio import AlignIO
+
 
 def fill_in_phylo_contigs(phylo_contigs, length, skip=[]):
     complete_phylo_contigs = defaultdict(list)
@@ -18,7 +19,9 @@ def fill_in_phylo_contigs(phylo_contigs, length, skip=[]):
         present = []
         if idx + 1 <= len(phylo_contigs):
             if pos != 0:
-                complete_phylo_contigs["rmv"].append([x for x in range(0, pos) if x not in skip])
+                complete_phylo_contigs["rmv"].append(
+                    [x for x in range(0, pos) if x not in skip]
+                )
 
             present.append(pos)
             while idx + 1 < len(phylo_contigs):
@@ -27,33 +30,40 @@ def fill_in_phylo_contigs(phylo_contigs, length, skip=[]):
                 if next == pos + 1:
                     present.append(next)
                 else:
-                    complete_phylo_contigs["add"].append([x for x in present if x not in skip])
-                    complete_phylo_contigs["rmv"].append([x for x in range(present[-1] + 1, next) if x not in skip])
+                    complete_phylo_contigs["add"].append(
+                        [x for x in present if x not in skip]
+                    )
+                    complete_phylo_contigs["rmv"].append(
+                        [x for x in range(present[-1] + 1, next) if x not in skip]
+                    )
                     present = []
 
                 pos = next
                 if next not in present:
                     present.append(next)
-                idx+=1
+                idx += 1
             if len(present) > 0:
-                complete_phylo_contigs["add"].append([x for x in present if x not in skip])
-            if pos != length and pos!= length - 1:
-                complete_phylo_contigs["rmv"].append([x for x in range(pos + 1, length) if x not in skip])
+                complete_phylo_contigs["add"].append(
+                    [x for x in present if x not in skip]
+                )
+            if pos != length and pos != length - 1:
+                complete_phylo_contigs["rmv"].append(
+                    [x for x in range(pos + 1, length) if x not in skip]
+                )
             break
 
     if len(complete_phylo_contigs) == 0:
         complete_phylo_contigs["rmv"].append([x for x in range(0, length)])
         complete_phylo_contigs["add"].append([x for x in range(0, length)])
 
-
     return complete_phylo_contigs
+
 
 # fill_in_phylo_contigs([0,1,3], 5)
 
 # fill_in_phylo_contigs([0,1,2,3,7,8,9], 10)
 #
-fill_in_phylo_contigs([2,3,6,7,12,14,19], 22)
-
+fill_in_phylo_contigs([2, 3, 6, 7, 12, 14, 19], 22)
 
 
 def label_internal_nodes(tree):
@@ -82,8 +92,7 @@ def make_extant_parsimony(tree):
     for leaf in tree.iter_leaves():
         leaf_list = [(1, 0) if x == "-" else (0, 1) for x in leaf.sequence]
         leaf_dict[leaf.name] = leaf_list
-    df = pd.DataFrame.from_dict(leaf_dict,
-                                orient='index')
+    df = pd.DataFrame.from_dict(leaf_dict, orient="index")
     return df
 
 
@@ -101,19 +110,32 @@ def make_internal_parsimony(tree, extant_parsimony):
         internal_list = []
         if not x.is_leaf():
             for column in extant_parsimony:
-                child1_df = extant_parsimony if x.children[0].name in leaves else internal_parsimony
-                child2_df = extant_parsimony if x.children[1].name in leaves else internal_parsimony
+                child1_df = (
+                    extant_parsimony
+                    if x.children[0].name in leaves
+                    else internal_parsimony
+                )
+                child2_df = (
+                    extant_parsimony
+                    if x.children[1].name in leaves
+                    else internal_parsimony
+                )
 
                 child1 = child1_df.loc[x.children[0].name, column]
                 child2 = child2_df.loc[x.children[1].name, column]
 
-                internal_list.append((min(child1[0], child1[1] + 1) + min(child2[0], child2[1] + 1),
-                                      min(child1[1], child1[0] + 1) + min(child2[1], child2[0] + 1)))
+                internal_list.append(
+                    (
+                        min(child1[0], child1[1] + 1) + min(child2[0], child2[1] + 1),
+                        min(child1[1], child1[0] + 1) + min(child2[1], child2[0] + 1),
+                    )
+                )
 
             internal_dict[x.name] = internal_list
         internal_parsimony = pd.DataFrame.from_dict(internal_dict, orient="index")
 
     return internal_parsimony
+
 
 def get_phylo_contigs(parsimony_table):
     """
@@ -138,39 +160,40 @@ def get_phylo_contigs(parsimony_table):
     # Fill in the contig dictionary - i.e. work out based on the sequence content positions where contiguous gaps /
     # sequence content exists
 
-    print ("phylo before")
-    for k,v in phylo_contigs.items():
-        print (k, v)
+    print("phylo before")
+    for k, v in phylo_contigs.items():
+        print(k, v)
 
-    for k,v in phylo_contigs.items():
+    for k, v in phylo_contigs.items():
         if k == "seq03":
-            print ('gotcha')
-        filled_contigs[k] = fill_in_phylo_contigs(v,len(row))
+            print("gotcha")
+        filled_contigs[k] = fill_in_phylo_contigs(v, len(row))
 
-    print ("\n\nphylo filled")
+    print("\n\nphylo filled")
 
-    for k,v in filled_contigs.items():
-        print (k, v)
+    for k, v in filled_contigs.items():
+        print(k, v)
     print()
 
     return filled_contigs
 
+
 def get_path_contigs(phylo_contigs, path_marks, length, no_multiple_insertions=True):
-    """ Get a version of phylo contigs that is associated with a particular path and updated to reflect that there
-    will be different points we can remove content from given the patterns we see in the ancestor  """
+    """Get a version of phylo contigs that is associated with a particular path and updated to reflect that there
+    will be different points we can remove content from given the patterns we see in the ancestor"""
 
     path_contigs = defaultdict(lambda: defaultdict())
 
-    print ('here be hte path contigs')
+    print("here be hte path contigs")
 
-    print (path_contigs)
+    print(path_contigs)
 
     for path, vals in path_marks.items():
         for node, modes in vals.items():
             for mode, mark in sorted(modes.items()):
                 if mode == "add":
 
-                    path_contigs[path][node]= {'add' : [mark]}
+                    path_contigs[path][node] = {"add": [mark]}
 
                 if mode == "rmv":
                     if len(mark) > 1:
@@ -181,15 +204,15 @@ def get_path_contigs(phylo_contigs, path_marks, length, no_multiple_insertions=T
                         print("Pattern at extant is ", mark)
 
                         if node == "N1":
-                            print ('gotcha')
+                            print("gotcha")
 
                         skip_pos = [x for x in range(length) if x not in path]
 
-                        print('skip pos is ', skip_pos)
+                        print("skip pos is ", skip_pos)
                         #
-                        print('original phylo contigs is ', phylo_contigs)
+                        print("original phylo contigs is ", phylo_contigs)
 
-                        contigs = [x for x in phylo_contigs[node]['add']]
+                        contigs = [x for x in phylo_contigs[node]["add"]]
 
                         skipped_contigs = []
 
@@ -204,23 +227,24 @@ def get_path_contigs(phylo_contigs, path_marks, length, no_multiple_insertions=T
                         #     if idx not in skipped_contigs:
                         #         skipped_contigs.append(idx)
 
-                        print ('and now skipped contigs', skipped_contigs)
+                        print("and now skipped contigs", skipped_contigs)
 
-
-
-                        updated_phylo_contigs = fill_in_phylo_contigs(skipped_contigs, length, skip=skip_pos)
+                        updated_phylo_contigs = fill_in_phylo_contigs(
+                            skipped_contigs, length, skip=skip_pos
+                        )
 
                         print("updated phylo contigs ", updated_phylo_contigs)
-
 
                         # If we aren't allowing for multiple insertions, remove any nodes that appear in the ancestor
                         #  from being added elsewhere
                         if no_multiple_insertions:
-                            updated_phylo_contigs =remove_ancestral_insertions(updated_phylo_contigs, path)
+                            updated_phylo_contigs = remove_ancestral_insertions(
+                                updated_phylo_contigs, path
+                            )
 
-                        if 'add' in modes:
+                        if "add" in modes:
 
-                            updated_phylo_contigs['add'] = [modes['add']]
+                            updated_phylo_contigs["add"] = [modes["add"]]
 
                         path_contigs[path][node] = updated_phylo_contigs
 
@@ -229,17 +253,17 @@ def get_path_contigs(phylo_contigs, path_marks, length, no_multiple_insertions=T
                         #         updated_phylo_contigs[mode].append([idx])
                     else:
                         if node in path_contigs[path]:
-                            path_contigs[path][node]['rmv'] = [mark]
-                        else :
-                            path_contigs[path][node] = {'rmv' : [mark]}
+                            path_contigs[path][node]["rmv"] = [mark]
+                        else:
+                            path_contigs[path][node] = {"rmv": [mark]}
     return path_contigs
 
 
 def remove_ancestral_insertions(phylo_contigs, path):
 
     if path == (0, 2, 3, 5, 6, 7):
-        print ('gtocha')
-    print ('path is ', path)
+        print("gtocha")
+    print("path is ", path)
 
     for mode, marks in phylo_contigs.items():
         if mode == "add":
@@ -249,19 +273,17 @@ def remove_ancestral_insertions(phylo_contigs, path):
                     if pos in path:
                         rmv.add(pos_pos)
 
-                print ('rmv was ', rmv)
-                print (marks)
+                print("rmv was ", rmv)
+                print(marks)
                 for itm in sorted(rmv):
-                    print (itm)
-                    print (idx)
-                    if len (idx) >itm:
+                    print(itm)
+                    print(idx)
+                    if len(idx) > itm:
                         idx.pop(itm)
                 if len(idx) == 0:
                     marks.pop(idx_pos)
 
     return phylo_contigs
-
-
 
 
 def get_highest_insertions(parsimony_table, tree):
@@ -278,21 +300,24 @@ def get_highest_insertions(parsimony_table, tree):
         insertion_candidates = []
         for node, score in parsimony_table[col].iteritems():
 
-            if node == "N0" and score[0] == 0: #If the root node has a zero cost for insertion
+            if (
+                node == "N0" and score[0] == 0
+            ):  # If the root node has a zero cost for insertion
                 highest_insertions[col] = node
                 break
             else:
                 if score[0] == 0:
                     insertion_candidates.append(node)
         if len(insertion_candidates) > 1:
-            first = tree&insertion_candidates[0]
-            others = [tree&x for x in insertion_candidates[1:]]
+            first = tree & insertion_candidates[0]
+            others = [tree & x for x in insertion_candidates[1:]]
             common_ancestor = first.get_common_ancestor(others).name
             highest_insertions[col] = common_ancestor
         elif len(insertion_candidates) == 1:
             highest_insertions[col] = insertion_candidates[0]
 
     return highest_insertions
+
 
 def make_total_parsimony(tree):
     """
@@ -406,15 +431,21 @@ def get_purged_contigs(contigs, tree, reduceContigs=True):
 
                     # If an identical contig occurs in a sibling, we can remove it from the current and sibling (as it
                     # could be completed at the parent node
-                    if mode in purged_contigs[sibling.name] and contig in purged_contigs[sibling.name][mode]:
+                    if (
+                        mode in purged_contigs[sibling.name]
+                        and contig in purged_contigs[sibling.name][mode]
+                    ):
                         purged_contigs[node.name][mode].remove(contig)
                         purged_contigs[sibling.name][mode].remove(contig)
 
                 # If we want to remove contigs that are a subset of other contigs
                 if reduceContigs:
-                    purged_contigs[node.name][mode] = reduce_contigs(purged_contigs[node.name][mode])
+                    purged_contigs[node.name][mode] = reduce_contigs(
+                        purged_contigs[node.name][mode]
+                    )
 
     return purged_contigs
+
 
 def score_ancestor(paths, parsimony, contigs):
     path_scores = {}
@@ -429,9 +460,9 @@ def score_ancestor(paths, parsimony, contigs):
         path_scores[tuple(path)] = score
     return path_scores
 
+
 def score_ancestor_collapse(paths, parsimony, contigs):
     path_scores = {}
-
 
     for path in paths:
         score = 0
@@ -456,22 +487,29 @@ def get_path_marks(paths, parsimony, contigs, aln, translate_path=True):
         if translate_path:
             translated_path = alignment_permutations.translate(path, translation)
         for col in parsimony:
-            if col in path: # If this is a column in our path we need to count the score for removing it
+            if (
+                col in path
+            ):  # If this is a column in our path we need to count the score for removing it
                 score = parsimony.loc["N0"][col][0]
-                if score != 0: # Score is non-zero, we need to account for removing content here
+                if (
+                    score != 0
+                ):  # Score is non-zero, we need to account for removing content here
                     for k, v in contigs.items():
                         for event in v["rmv"]:
                             if len(event) > 0:
                                 if col in event:
 
                                     if translate_path:
-                                        path_marks[translated_path][k].append("-%s-" % alignment_permutations.translate([col], translation))
+                                        path_marks[translated_path][k].append(
+                                            "-%s-"
+                                            % alignment_permutations.translate(
+                                                [col], translation
+                                            )
+                                        )
                                     else:
                                         path_marks[path][k].append("-%s-" % str(col))
 
-
-
-            else: # This column isn't in our path so we need to count the score for adding it back in
+            else:  # This column isn't in our path so we need to count the score for adding it back in
                 score = parsimony.loc["N0"][col][1]
                 if score != 0:
                     for k, v in contigs.items():
@@ -480,25 +518,41 @@ def get_path_marks(paths, parsimony, contigs, aln, translate_path=True):
 
                                 if col in event:
                                     if translate_path:
-                                        path_marks[translated_path][k].append("+%s+" % alignment_permutations.translate([col], translation))
+                                        path_marks[translated_path][k].append(
+                                            "+%s+"
+                                            % alignment_permutations.translate(
+                                                [col], translation
+                                            )
+                                        )
                                     else:
                                         path_marks[path][k].append("+%s+" % str(col))
 
     return path_marks
 
 
-def get_path_marks2(paths, parsimony, contigs, aln, no_multple_insertions, highest_insertions, tree):
+def get_path_marks2(
+    paths,
+    parsimony,
+    contigs,
+    aln,
+    no_multple_insertions,
+    highest_insertions,
+    tree,
+):
 
     path_scores = score_ancestor(paths, parsimony, contigs)
     path_marks = defaultdict(lambda: defaultdict(dict))
 
-
     for path, score in path_scores.items():
 
         for col in parsimony:
-            if col in path: # If this is a column in our path we need to count the score for removing it
+            if (
+                col in path
+            ):  # If this is a column in our path we need to count the score for removing it
                 score = parsimony.loc["N0"][col][0]
-                if score != 0: # Score is non-zero, we need to account for removing content here
+                if (
+                    score != 0
+                ):  # Score is non-zero, we need to account for removing content here
                     for node, v in contigs.items():
                         if node not in path_marks[path]:
                             path_marks[path][node] = defaultdict(list)
@@ -510,18 +564,20 @@ def get_path_marks2(paths, parsimony, contigs, aln, no_multple_insertions, highe
                         for event in v["rmv"]:
                             if len(event) > 0:
 
-                                if col in event and col not in path_marks[path][node]['rmv']:
+                                if (
+                                    col in event
+                                    and col not in path_marks[path][node]["rmv"]
+                                ):
 
                                     path_marks[path][node]["rmv"].append(col)
                         if len(path_marks[path][node]) == 0:
                             path_marks[path].pop(node)
 
+            else:  # This column isn't in our path so we need to count the score for adding it back in
 
-
-            else:# This column isn't in our path so we need to count the score for adding it back in
-
-                if no_multple_insertions: # We don't want to allow for inserting this position in multiple times
-
+                if (
+                    no_multple_insertions
+                ):  # We don't want to allow for inserting this position in multiple times
 
                     # print ("no multi")
                     # print (highest_insertions)
@@ -534,11 +590,9 @@ def get_path_marks2(paths, parsimony, contigs, aln, no_multple_insertions, highe
 
                                 path_marks[path][node] = defaultdict(list)
 
-
                             # if 'add' not in path_marks[path][k]:
                             #     path_marks[path][k]["add"] = []
                             for event in v["add"]:
-
 
                                 # If any of the nodes have a cost for adding this back in, record the node
                                 if len(event) > 0:
@@ -548,10 +602,8 @@ def get_path_marks2(paths, parsimony, contigs, aln, no_multple_insertions, highe
                                     # if col in event and col not in path_marks[path][node]['add']:
                                     #     path_marks[path][node]["add"].append(col)
 
-
-                        if 'add' not in path_marks[path][ins_event]:
+                        if "add" not in path_marks[path][ins_event]:
                             path_marks[path][ins_event]["add"] = []
-
 
                         # Add the insertion event at the highest neccescary point to stop multiple insertions
                         path_marks[path][ins_event]["add"].append(col)
@@ -559,23 +611,23 @@ def get_path_marks2(paths, parsimony, contigs, aln, no_multple_insertions, highe
                         if len(path_marks[path][node]) == 0:
                             path_marks[path].pop(node)
 
-                        # Now we need to check if any descendants need to have this insertion removed
-                            curr = tree&ins_event
+                            # Now we need to check if any descendants need to have this insertion removed
+                            curr = tree & ins_event
 
                             descendants = [x.name for x in curr.get_descendants()]
 
                             for desc in descendants:
-                                for pos in contigs[desc]['rmv']:
+                                for pos in contigs[desc]["rmv"]:
                                     if col in pos:
-                                        if 'rmv' not in path_marks[path][desc]:
+                                        if "rmv" not in path_marks[path][desc]:
                                             path_marks[path][desc]["rmv"] = []
 
                                         if col not in path_marks[path][desc]["rmv"]:
-                                            print ('adding')
+                                            print("adding")
                                             path_marks[path][desc]["rmv"].append(col)
-                            print ()
+                            print()
 
-                else: # We will allow to insert this position in multiple times
+                else:  # We will allow to insert this position in multiple times
 
                     score = parsimony.loc["N0"][col][1]
                     if score != 0:
@@ -584,13 +636,15 @@ def get_path_marks2(paths, parsimony, contigs, aln, no_multple_insertions, highe
 
                                 path_marks[path][node] = defaultdict(list)
 
-
                             # if 'add' not in path_marks[path][k]:
                             #     path_marks[path][k]["add"] = []
                             for event in v["add"]:
                                 # If any of the nodes have a cost for adding this back in, record the node
                                 if len(event) > 0:
-                                    if col in event and col not in path_marks[path][node]['add']:
+                                    if (
+                                        col in event
+                                        and col not in path_marks[path][node]["add"]
+                                    ):
                                         path_marks[path][node]["add"].append(col)
                             if len(path_marks[path][node]) == 0:
                                 path_marks[path].pop(node)
@@ -601,12 +655,14 @@ def get_path_marks2(paths, parsimony, contigs, aln, no_multple_insertions, highe
     #         print (k, x, y)
     return path_marks
 
+
 def concat_lists(marks, contigs, phylo_contigs):
     for contig in contigs:
         for idx, col in enumerate(contig):
             if col not in marks:
                 contig.pop(idx)
-    return (contigs[0])
+    return contigs[0]
+
 
 def concatenate_marks(path_marks, contigs, phylo_contigs):
     # Check to see if we can concatenate any of the path marks
@@ -618,10 +674,11 @@ def concatenate_marks(path_marks, contigs, phylo_contigs):
             if path == (0, 4):
                 break
 
-
                 for mode in mark:
                     if len(mark[mode]) > 1:
-                        concatenated = concat_lists(mark[mode], contigs[node][mode], [0,1])
+                        concatenated = concat_lists(
+                            mark[mode], contigs[node][mode], [0, 1]
+                        )
                         concatenated_marks[path][node][mode] = concatenated
                     else:
                         pass
@@ -641,9 +698,10 @@ def concatenate_marks(path_marks, contigs, phylo_contigs):
                         #         concatenated_marks[path][node] = []
                         #         concatenated_marks[path][node].append(",".join(str(x) for x in val))
                         #         break
-                                # concatenated_marks[path][k].append("SOMETHING")
+                        # concatenated_marks[path][k].append("SOMETHING")
 
     return concatenated_marks
+
 
 def get_marks_to_ancestors(path_marks):
     """
@@ -662,6 +720,7 @@ def get_marks_to_ancestors(path_marks):
 
     return marks_to_ancestors
 
+
 def shift_marks(path_marks, contigs, tree):
 
     shifted_marks = deepcopy(path_marks)
@@ -672,136 +731,203 @@ def shift_marks(path_marks, contigs, tree):
 
             children = node.children
 
-
-
-
-
-
             for mode in marks_to_ancestors[node.name]:
 
-                if mode in marks_to_ancestors[children[0].name] and mode in marks_to_ancestors[children[1].name]:
+                if (
+                    mode in marks_to_ancestors[children[0].name]
+                    and mode in marks_to_ancestors[children[1].name]
+                ):
                     for path in marks_to_ancestors[node.name][mode]:
-                        if path in marks_to_ancestors[children[0].name][mode] and path in marks_to_ancestors[
-                            children[1].name][mode]:
+                        if (
+                            path in marks_to_ancestors[children[0].name][mode]
+                            and path in marks_to_ancestors[children[1].name][mode]
+                        ):
                             for idx in marks_to_ancestors[node.name][mode][path]:
                                 for pos in idx:
                                     present = []
-                                    for idx_child1 in marks_to_ancestors[children[0].name][mode][path]:
+                                    for idx_child1 in marks_to_ancestors[
+                                        children[0].name
+                                    ][mode][path]:
                                         for pos_child1 in idx_child1:
                                             if pos == pos_child1:
                                                 present.append(children[0].name)
-                                    for idx_child2 in marks_to_ancestors[children[1].name][mode][path]:
+                                    for idx_child2 in marks_to_ancestors[
+                                        children[1].name
+                                    ][mode][path]:
                                         for pos_child2 in idx_child2:
                                             if pos == pos_child2:
                                                 present.append(children[1].name)
                                     # print ('here is present ', present)
                                     for child_name in present:
-                                            if pos in shifted_marks[path][child_name][mode]:
+                                        if pos in shifted_marks[path][child_name][mode]:
 
-                                                shifted_marks[path][child_name][mode].remove(pos)
-                                                # for subchildren in tree&child_name:
-                                                #     print ('here is a subchild')
-                                                #     print (subchildren.name)
+                                            shifted_marks[path][child_name][
+                                                mode
+                                            ].remove(pos)
+                                            # for subchildren in tree&child_name:
+                                            #     print ('here is a subchild')
+                                            #     print (subchildren.name)
 
     return shifted_marks
 
+
 def move_marks(path_marks, path_contigs, tree, length, push_down=False):
 
-        shifted_marks = deepcopy(path_marks)
-        marks_to_ancestors = get_marks_to_ancestors(path_marks)
-        pushed_down = defaultdict(list)
+    shifted_marks = deepcopy(path_marks)
+    marks_to_ancestors = get_marks_to_ancestors(path_marks)
+    pushed_down = defaultdict(list)
 
-        for node in tree.traverse("postorder"):
-            if not node.is_root() and not node.is_leaf():
+    for node in tree.traverse("postorder"):
+        if not node.is_root() and not node.is_leaf():
 
-                children = node.children
+            children = node.children
 
-                for mode in marks_to_ancestors[node.name]:
+            for mode in marks_to_ancestors[node.name]:
 
-                    if node.name == "N1":
-                        print ('gotcha')
+                if node.name == "N1":
+                    print("gotcha")
 
-                    if mode in marks_to_ancestors[children[0].name] and mode in marks_to_ancestors[children[1].name]:
-                        for path in marks_to_ancestors[node.name][mode]:
-                            if path in marks_to_ancestors[children[0].name][mode] and path in marks_to_ancestors[
-                                children[1].name][mode]:
-                                # print ('no sno ', path_contigs[path])
-                                # print (node.name)
-                                # print ('here bo ', path_contigs[path][node.name])
-                                if mode in path_contigs[path][node.name]:
-                                    for idx in path_contigs[path][node.name][mode]:
+                if (
+                    mode in marks_to_ancestors[children[0].name]
+                    and mode in marks_to_ancestors[children[1].name]
+                ):
+                    for path in marks_to_ancestors[node.name][mode]:
+                        if (
+                            path in marks_to_ancestors[children[0].name][mode]
+                            and path in marks_to_ancestors[children[1].name][mode]
+                        ):
+                            # print ('no sno ', path_contigs[path])
+                            # print (node.name)
+                            # print ('here bo ', path_contigs[path][node.name])
+                            if mode in path_contigs[path][node.name]:
+                                for idx in path_contigs[path][node.name][mode]:
 
                                     # for idx in path_marks[path][node.name][mode]:
                                     # for idx in marks_to_ancestors[node.name][mode][path]:
 
-                                        for pos in idx:
-                                            present = []
-                                            found_idxes = []
-                                            for idx_child1 in marks_to_ancestors[children[0].name][mode][path]:
-                                                for pos_child1 in idx_child1:
-                                                    if pos == pos_child1:
-                                                        present.append(children[0].name)
-                                                        found_idxes.append(idx_child1)
-                                                        break
-                                            for idx_child2 in marks_to_ancestors[children[1].name][mode][path]:
-                                                for pos_child2 in idx_child2:
-                                                    if pos == pos_child2:
-                                                        present.append(children[1].name)
-                                                        found_idxes.append(idx_child2)
-                                                        break
+                                    for pos in idx:
+                                        present = []
+                                        found_idxes = []
+                                        for idx_child1 in marks_to_ancestors[
+                                            children[0].name
+                                        ][mode][path]:
+                                            for pos_child1 in idx_child1:
+                                                if pos == pos_child1:
+                                                    present.append(children[0].name)
+                                                    found_idxes.append(idx_child1)
+                                                    break
+                                        for idx_child2 in marks_to_ancestors[
+                                            children[1].name
+                                        ][mode][path]:
+                                            for pos_child2 in idx_child2:
+                                                if pos == pos_child2:
+                                                    present.append(children[1].name)
+                                                    found_idxes.append(idx_child2)
+                                                    break
 
-                                            # print ('here is present ', present)
-                                            # if len(idx) == 1 or (found_idxes[0] == found_idxes[1]):
+                                        # print ('here is present ', present)
+                                        # if len(idx) == 1 or (found_idxes[0] == found_idxes[1]):
 
-                                            if len(found_idxes) > 1:
+                                        if len(found_idxes) > 1:
 
-                                                if found_idxes[0] == found_idxes[1]:
+                                            if found_idxes[0] == found_idxes[1]:
 
-                                                    print('triple doo')
-                                                    for child_name in present:
-                                                        if pos in shifted_marks[path][child_name][mode]:
-                                                            shifted_marks[path][child_name][mode].remove(pos)
-                                                            # for subchildren in tree&child_name:
-                                                            #     print ('here is a subchild')
-                                                            #     print (subchildren.name)
-                                                elif found_idxes[0] != found_idxes[1]:
-                                                    print('woo poo')
-                                                    if pos in shifted_marks[path][node.name][mode]:
-                                                        shifted_marks[path][node.name][mode].remove(pos)
-                                                    pushed_down[pos].append(present[0])
-                                                    pushed_down[pos].append(present[1])
-                                                    print ('pushed down is ', pushed_down)
+                                                print("triple doo")
+                                                for child_name in present:
+                                                    if (
+                                                        pos
+                                                        in shifted_marks[path][
+                                                            child_name
+                                                        ][mode]
+                                                    ):
+                                                        shifted_marks[path][child_name][
+                                                            mode
+                                                        ].remove(pos)
+                                                        # for subchildren in tree&child_name:
+                                                        #     print ('here is a subchild')
+                                                        #     print (subchildren.name)
+                                            elif found_idxes[0] != found_idxes[1]:
+                                                print("woo poo")
+                                                if (
+                                                    pos
+                                                    in shifted_marks[path][node.name][
+                                                        mode
+                                                    ]
+                                                ):
+                                                    shifted_marks[path][node.name][
+                                                        mode
+                                                    ].remove(pos)
+                                                pushed_down[pos].append(present[0])
+                                                pushed_down[pos].append(present[1])
+                                                print(
+                                                    "pushed down is ",
+                                                    pushed_down,
+                                                )
 
+                                                # If we are removing something that was pushed down earlier,
+                                                # revert the push down operation
+                                                if push_down:
+                                                    if pos in pushed_down:
+                                                        for seq in pushed_down[pos]:
+                                                            print(
+                                                                node.get_descendants()
+                                                            )
+                                                            if seq in [
+                                                                x.name
+                                                                for x in node.get_descendants()
+                                                            ]:
+                                                                print(
+                                                                    shifted_marks[path][
+                                                                        seq
+                                                                    ]
+                                                                )
+                                                                if (
+                                                                    pos
+                                                                    not in shifted_marks[
+                                                                        path
+                                                                    ][
+                                                                        seq
+                                                                    ][
+                                                                        mode
+                                                                    ]
+                                                                ):
+                                                                    shifted_marks[path][
+                                                                        seq
+                                                                    ][mode].append(pos)
 
-                                                    # If we are removing something that was pushed down earlier,
-                                                    # revert the push down operation
-                                                    if push_down:
-                                                        if pos in pushed_down:
-                                                            for seq in pushed_down[pos]:
-                                                                print(node.get_descendants())
-                                                                if seq in [x.name for x in node.get_descendants()]:
-                                                                    print(shifted_marks[path][seq])
-                                                                    if pos not in shifted_marks[path][seq][mode]:
-                                                                        shifted_marks[path][seq][mode].append(pos)
+                                                if not push_down:
+                                                    if pos in pushed_down:
+                                                        shifted_marks[path][node.name][
+                                                            mode
+                                                        ].append(pos)
+                                                        for seq in pushed_down[pos]:
+                                                            print(
+                                                                node.get_descendants()
+                                                            )
+                                                            if seq in [
+                                                                x.name
+                                                                for x in node.get_descendants()
+                                                            ]:
+                                                                print(
+                                                                    shifted_marks[path][
+                                                                        seq
+                                                                    ]
+                                                                )
+                                                                if (
+                                                                    pos
+                                                                    in shifted_marks[
+                                                                        path
+                                                                    ][seq][mode]
+                                                                ):
+                                                                    shifted_marks[path][
+                                                                        seq
+                                                                    ][mode].remove(pos)
 
+                                                print(idx)
+                                                print(found_idxes)
+                                                print("hmm")
+    return shifted_marks
 
-                                                    if not push_down:
-                                                        if pos in pushed_down:
-                                                            shifted_marks[path][node.name][mode].append(pos)
-                                                            for seq in pushed_down[pos]:
-                                                                print(node.get_descendants())
-                                                                if seq in [x.name for x in node.get_descendants()]:
-                                                                    print(shifted_marks[path][seq])
-                                                                    if pos in shifted_marks[path][seq][mode]:
-                                                                        shifted_marks[path][seq][mode].remove(pos)
-
-
-
-
-                                                    print(idx)
-                                                    print(found_idxes)
-                                                    print('hmm')
-        return shifted_marks
 
 def separate_contig(marks, phylo_contig):
     separated_contigs = []
@@ -815,8 +941,9 @@ def separate_contig(marks, phylo_contig):
                 separated_contigs.append(new_contig)
                 new_contig = []
     if len(new_contig) > 0 and new_contig not in separated_contigs:
-          separated_contigs.append(new_contig)
+        separated_contigs.append(new_contig)
     return separated_contigs
+
 
 def get_sequence_content_from_ancestors(path_marks, node, tree):
     # print ('inthis one')
@@ -826,7 +953,7 @@ def get_sequence_content_from_ancestors(path_marks, node, tree):
     # print (node)
     # print (tree&node)
     sequence_content = []
-    tree_node = tree&node
+    tree_node = tree & node
     for ancestor in tree_node.get_ancestors():
         # print ("ANCESTOR IS ", ancestor.name)
         if ancestor.name in path_marks:
@@ -838,6 +965,7 @@ def get_sequence_content_from_ancestors(path_marks, node, tree):
 
     return sequence_content
 
+
 def separate_marks(path_marks, phylo_contigs, tree, length):
 
     separated_marks = deepcopy(path_marks)
@@ -846,7 +974,7 @@ def separate_marks(path_marks, phylo_contigs, tree, length):
         for node, modes in vals.items():
             for mode, mark in modes.items():
                 if mode == "rmv":
-                    if len (mark) > 1:
+                    if len(mark) > 1:
                         # print ('marks is ', mark)
                         # if path == (0,4) and node == "N4":
                         #     print ('gotcha')
@@ -854,11 +982,10 @@ def separate_marks(path_marks, phylo_contigs, tree, length):
                         #     print ('got this one')
 
                         #
-                        print ("Mode is ", mode)
-                        print ("Node is ", node)
-                        print ("Path we're considering is ", path)
-                        print ("Pattern at extant is ", mark)
-
+                        print("Mode is ", mode)
+                        print("Node is ", node)
+                        print("Path we're considering is ", path)
+                        print("Pattern at extant is ", mark)
 
                         # Get the updated sequence content at this node (relative to what has been placed in its ancestors)
                         # seq_content_from_ancestor = get_sequence_content_from_ancestors(path_marks[path],  node, tree)
@@ -872,11 +999,11 @@ def separate_marks(path_marks, phylo_contigs, tree, length):
 
                         skip_pos = [x for x in range(length) if x not in path]
 
-                        print ('skip pos is ', skip_pos)
+                        print("skip pos is ", skip_pos)
                         #
-                        print ('original phylo contigs is ', phylo_contigs)
+                        print("original phylo contigs is ", phylo_contigs)
 
-                        contigs = [x for x in phylo_contigs[path][node]['add']]
+                        contigs = [x for x in phylo_contigs[path][node]["add"]]
 
                         # print ('now here be the skipped')
 
@@ -889,29 +1016,29 @@ def separate_marks(path_marks, phylo_contigs, tree, length):
                                 if pos not in skip_pos:
                                     skipped_contigs.append(pos)
 
-                        print ("skipped contigs", skipped_contigs)
+                        print("skipped contigs", skipped_contigs)
 
+                        updated_phylo_contigs = fill_in_phylo_contigs(
+                            skipped_contigs, length, skip=skip_pos
+                        )
 
-                        updated_phylo_contigs = fill_in_phylo_contigs(skipped_contigs, length, skip=skip_pos)
-
-                        print ("updated phylo contigs ", updated_phylo_contigs)
+                        print("updated phylo contigs ", updated_phylo_contigs)
 
                         # print (updated_phylo_contigs)
 
-
                         # Get the cost for placing
-                        separated_contigs = separate_contig(mark, updated_phylo_contigs[mode])
+                        separated_contigs = separate_contig(
+                            mark, updated_phylo_contigs[mode]
+                        )
 
-                        print ('separated contigs ', separated_contigs)
-
+                        print("separated contigs ", separated_contigs)
 
                         # separated_contigs = separate_contig(mark, phylo_contigs[node][mode])
                         separated_marks[path][node][mode] = separated_contigs
 
-                        print ("separated marks ", separated_marks)
+                        print("separated marks ", separated_marks)
 
     return separated_marks
-
 
 
 def get_event_count(path):
@@ -928,6 +1055,7 @@ def get_event_count(path):
         count += (event.count("+") + event.count("-")) / 2
 
     return int(count)
+
 
 def translate_paths2(path_marks, aln, translation=None):
 
@@ -946,7 +1074,9 @@ def translate_paths2(path_marks, aln, translation=None):
                 if len(val) > 0:
 
                     if len(mode) > 0:
-                        translated_node = alignment_permutations.translate(mode, val, translation)
+                        translated_node = alignment_permutations.translate(
+                            mode, val, translation
+                        )
                         translated_paths[translated_path][node].append(translated_node)
 
     return translated_paths
@@ -959,10 +1089,16 @@ def get_marked_style(title, path):
     ts.branch_vertical_margin = 10  # 10 pixels between adjacent branches
     event_count = get_event_count(path)
 
-    ts.title.add_face(TextFace("Minimal indel events needed for %s ancestor is %s " % (title, event_count) , fsize=20), column=0)
+    ts.title.add_face(
+        TextFace(
+            "Minimal indel events needed for %s ancestor is %s " % (title, event_count),
+            fsize=20,
+        ),
+        column=0,
+    )
 
     def my_layout(node):
-        if node.name == "N0": # Format the root node with the ancestor sequence
+        if node.name == "N0":  # Format the root node with the ancestor sequence
             F = TextFace(title, tight_text=True, fgcolor="black")
             # F.rotation = 330
             add_face_to_node(F, node, column=0, position="branch-top")
@@ -974,14 +1110,12 @@ def get_marked_style(title, path):
             F.rotation = 330
             add_face_to_node(F, node, column=0, position="branch-bottom")
         if node.is_leaf():
-            seq_face = SeqMotifFace(node.sequence, seqtype='aa', seq_format='seq')
-            add_face_to_node(seq_face, node, column=0, position='aligned')
+            seq_face = SeqMotifFace(node.sequence, seqtype="aa", seq_format="seq")
+            add_face_to_node(seq_face, node, column=0, position="aligned")
 
     ts.layout_fn = my_layout
 
-
     return ts
-
 
 
 def reduce_contigs(contig_list):
@@ -995,6 +1129,7 @@ def reduce_contigs(contig_list):
                 reduced_list.remove(contig)
                 break
     return reduced_list
+
 
 def is_next(pos, check_pos):
     """
@@ -1014,13 +1149,13 @@ def split_contigs(query_contig):
     start_pos = 0
     for pos, x in enumerate(zip(query_contig, query_contig[1:])):
         if not is_next(x[0], x[1]):
-            new_contigs.append(query_contig[start_pos: pos + 1])
+            new_contigs.append(query_contig[start_pos : pos + 1])
             start_pos = pos + 1
 
     # Add the final segment
     new_contigs.append(query_contig[start_pos:])
 
-    return (new_contigs)
+    return new_contigs
 
 
 def produce_split_contig_list(contig_list):
@@ -1045,14 +1180,20 @@ def remove_positions(query, target):
 
 
 class IndelPlacement:
-
-    def __init__(self, tree_name, aln_name, get_all_ancestors=False, no_multiple_insertions=True):
+    def __init__(
+        self,
+        tree_name,
+        aln_name,
+        get_all_ancestors=False,
+        no_multiple_insertions=True,
+    ):
         self.tree_name = tree_name
         self.aln_name = aln_name
         self.get_all_ancestors = get_all_ancestors
 
-        self.tree = PhyloTree(tree_name, alignment=aln_name,
-                         format=1, alg_format="fasta")
+        self.tree = PhyloTree(
+            tree_name, alignment=aln_name, format=1, alg_format="fasta"
+        )
         self.aln = AlignIO.read(aln_name, "fasta")
 
         label_internal_nodes(self.tree)
@@ -1063,15 +1204,12 @@ class IndelPlacement:
 
         self.phylo_contigs = get_phylo_contigs(self.parsimony)
 
-
         self.contigs = get_contig_indel_dict(self.parsimony)
 
         self.highest_insertions = get_highest_insertions(self.parsimony, self.tree)
 
-
         # Change this back
         self.purged_contigs = get_contig_indel_dict(self.parsimony)
-
 
         # self.purged_contigs = get_purged_contigs(self.contigs, self.tree)
 
@@ -1083,7 +1221,9 @@ class IndelPlacement:
 
         insertion_aware_ancestral_paths = []
         if no_multiple_insertions:
-            ancestor_positions = [k for k, v in self.highest_insertions.items() if v == "N0"]
+            ancestor_positions = [
+                k for k, v in self.highest_insertions.items() if v == "N0"
+            ]
             # print(ancestor_positions)
             for path in self.paths:
                 if set(ancestor_positions).issubset(set(path)):
@@ -1098,30 +1238,40 @@ class IndelPlacement:
 
         # self.paths = [[0, 1, 4, 5]]
 
-
         self.scores = score_ancestor(self.paths, self.parsimony, self.purged_contigs)
 
-        self.marks = get_path_marks2(self.paths, self.parsimony, self.purged_contigs, self.aln,
-                                     no_multiple_insertions, self.highest_insertions, self.tree)
+        self.marks = get_path_marks2(
+            self.paths,
+            self.parsimony,
+            self.purged_contigs,
+            self.aln,
+            no_multiple_insertions,
+            self.highest_insertions,
+            self.tree,
+        )
 
-        self.path_contigs = get_path_contigs(self.phylo_contigs, self.marks, len(self.parsimony.columns), no_multiple_insertions)
+        self.path_contigs = get_path_contigs(
+            self.phylo_contigs,
+            self.marks,
+            len(self.parsimony.columns),
+            no_multiple_insertions,
+        )
 
-        print ( "\n\n\n")
-        print ('phylo contigs')
+        print("\n\n\n")
+        print("phylo contigs")
 
         for k, v in self.phylo_contigs.items():
             for a, b in v.items():
-                print (k,a, b)
+                print(k, a, b)
 
-        print ("\n")
+        print("\n")
 
-        print ('path contigs')
+        print("path contigs")
 
         for k, v in self.path_contigs.items():
             for a, b in v.items():
-                print (k,a, b)
-        print ( "\n\n\n")
-
+                print(k, a, b)
+        print("\n\n\n")
 
         # NOTE: NO LONGER RUNNING CONCATENATE
 
@@ -1129,14 +1279,17 @@ class IndelPlacement:
 
         # self.shifted_marks = shift_marks(self.marks, self.purged_contigs, self.tree)
 
-        self.moved_marks = move_marks(self.marks, self.path_contigs, self.tree, len(self.parsimony.columns))
+        self.moved_marks = move_marks(
+            self.marks,
+            self.path_contigs,
+            self.tree,
+            len(self.parsimony.columns),
+        )
 
-
-        print (' marks')
+        print(" marks")
         for k, v in self.marks.items():
             for a, b in v.items():
-                print (k,a, b)
-
+                print(k, a, b)
 
         # print ('concatenated marks')
         # for k, v in self.concatenated_marks.items():
@@ -1144,35 +1297,32 @@ class IndelPlacement:
         #         for a, b in v.items():
         #             print (k,a, b)
 
-
         # print ('shifted marks')
         # for k, v in self.shifted_marks.items():
         #     if k == (0,3,4):
         #         for a, b in v.items():
         #             print (k,a, b)
 
-
-        print ('moved marks')
+        print("moved marks")
         for k, v in self.moved_marks.items():
             for a, b in v.items():
-                print (k,a, b)
+                print(k, a, b)
 
-        self.separated_marks = separate_marks(self.moved_marks, self.path_contigs, self.tree,
-                                              len(self.parsimony.columns))
+        self.separated_marks = separate_marks(
+            self.moved_marks,
+            self.path_contigs,
+            self.tree,
+            len(self.parsimony.columns),
+        )
 
-
-        print ('separated marks')
+        print("separated marks")
 
         for k, v in self.separated_marks.items():
-             for a, b in v.items():
-                 print(k, a, b)
+            for a, b in v.items():
+                print(k, a, b)
 
         self.translated_marks = translate_paths2(self.separated_marks, self.aln)
-
-
 
         # print ('translated marks')
         # for k, v in self.translated_marks.items():
         #     print (k, v)
-
-

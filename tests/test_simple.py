@@ -1,4 +1,4 @@
-import ancestral_cost.ancestral_cost as ac
+import ancestralcost.__init__ as ac
 
 
 # def test_get_positions_with_content_root(simple_tree_4, simple_aln_4):
