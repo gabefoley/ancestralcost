@@ -7,7 +7,7 @@ import os
 from Bio import AlignIO
 import argparse
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 
 def load_tree_with_alignment(tree, alignment):
