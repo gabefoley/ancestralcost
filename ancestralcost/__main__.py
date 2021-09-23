@@ -6,7 +6,7 @@ from ete3 import PhyloTree
 import ancestralcost.indel_placement as indel_placement
 from Bio import AlignIO
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 
 def load_tree_with_alignment(tree, alignment):
