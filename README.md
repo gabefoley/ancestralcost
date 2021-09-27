@@ -37,12 +37,14 @@ If an alignment suggests two positions should be aligned but they are only prese
 
 ![Alignment discrepency](https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png)
 
-<img src="https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png" width="400" height="400">
+<img src="https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png" width="800" height="00">
 
 
 First Ancestral Cost calculates all of the positions required to be there. In the example this is done by simply looking at the highest ancestral position implied by each column. From the example, N3 is the only ancestral node that has content at each of the four alignment positions, all of the other nodes have content at three alignment positions.
 
-<img src="https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/ancestralcost_example.png" width="500" height="400">
+<img src="https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/ancestralcost_example.png" width="800">
+
+
 
 It then calculates the parsimony cost for each implied position and reports on the cost of content being present and cost of content being absent.
 
