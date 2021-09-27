@@ -35,9 +35,7 @@ Ancestral Cost is intended to be run before ASR in order to validate alignments 
 If an alignment suggests two positions should be aligned but they are only present in distant clades then they shouldn't be one column but split into two columns. Failing to do this will influence ancestors that are predicted at these positions.
 
 
-![Alignment discrepency](https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png)
-
-<img src="https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png" width="800">
+<img src="https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png" width="400">
 
 
 First Ancestral Cost calculates all of the positions required to be there. In the example this is done by simply looking at the highest ancestral position implied by each column. From the example, N3 is the only ancestral node that has content at each of the four alignment positions, all of the other nodes have content at three alignment positions.
