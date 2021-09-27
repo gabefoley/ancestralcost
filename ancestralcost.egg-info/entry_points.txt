@@ -1,0 +1,3 @@
+[console_scripts]
+PROJECT_NAME = ancestralcost.__main__:main
+

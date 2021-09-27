@@ -17,7 +17,7 @@ It checks for each position in a given ancestor that the presence of ancestral c
 ```
 # Usage
 ```bash
-$ ancestral_cost -a <alignment> -t <tree>
+$ python -m ancestral_cost -a <alignment> -t <tree>
 ```
 
 # Workflow
@@ -28,7 +28,10 @@ Ancestral Cost checks that for every ancestral position that is implied by a giv
 
 Ancestral Cost is intended to be run before ASR in order to validate alignments and trees. It highlights positions that may be erroneously aligned.
 
-![CYP2U1 Example](https://raw.githubusercontent.com/gabefoley/ancestral_cost/master/images/CYP2U_165_ancestral_cost.png)
+![CYP2U1 Example](https://raw.githubusercontent.com/gabefoley/ancestral_cost/master/images/CYP2U_165_ancestralcost.png)
+
+<img src="https://raw.githubusercontent.com/gabefoley/ancestral_cost/master/images/CYP2U_165_ancestralcost.png" width="100" height="100">
+
 
 
 If an alignment suggests two positions should be aligned but they are only present in distant clades then they shouldn't be one column but split into two columns. Failing to do this will influence ancestors that are predicted at these positions.
@@ -36,10 +39,12 @@ If an alignment suggests two positions should be aligned but they are only prese
 
 ![Alignment discrepency](https://raw.githubusercontent.com/gabefoley/ancestral_cost/master/images/alignment_discrepency.png)
 
+<img src="https://raw.githubusercontent.com/gabefoley/ancestral_cost/master/images/alignment_discrepency.png" width="100" height="100">
+
 
 First Ancestral Cost calculates all of the positions required to be there. In the example this is done by simply looking at the highest ancestral position implied by each column. From the example, N3 is the only ancestral node that has content at each of the four alignment positions, all of the other nodes have content at three alignment positions.
 
-![Ancestral Cost Example](https://raw.githubusercontent.com/gabefoley/ancestral_cost/master/images/ancestral_cost_example.png)
+<img src="https://raw.githubusercontent.com/gabefoley/ancestral_cost/master/images/ancestralcost_example.png" width="100" height="100">
 
 It then calculates the parsimony cost for each implied position and reports on the cost of content being present and cost of content being absent.
 

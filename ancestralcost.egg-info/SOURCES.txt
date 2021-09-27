@@ -1,0 +1,17 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+ancestralcost/__init__.py
+ancestralcost/__main__.py
+ancestralcost/alignment_permutations.py
+ancestralcost/graph.py
+ancestralcost/indel_placement.py
+ancestralcost/oldmain.py
+ancestralcost/tree_code.py
+ancestralcost.egg-info/PKG-INFO
+ancestralcost.egg-info/SOURCES.txt
+ancestralcost.egg-info/dependency_links.txt
+ancestralcost.egg-info/entry_points.txt
+ancestralcost.egg-info/requires.txt
+ancestralcost.egg-info/top_level.txt

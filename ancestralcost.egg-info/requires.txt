@@ -1,0 +1,4 @@
+pandas
+numpy
+ete3
+pyqt5
