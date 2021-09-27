@@ -37,7 +37,7 @@ If an alignment suggests two positions should be aligned but they are only prese
 
 ![Alignment discrepency](https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png)
 
-<img src="https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png" width="800" height="00">
+<img src="https://raw.githubusercontent.com/gabefoley/ancestralcost/master/images/alignment_discrepency.png" width="800">
 
 
 First Ancestral Cost calculates all of the positions required to be there. In the example this is done by simply looking at the highest ancestral position implied by each column. From the example, N3 is the only ancestral node that has content at each of the four alignment positions, all of the other nodes have content at three alignment positions.
